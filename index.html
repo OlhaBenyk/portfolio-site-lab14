@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Портфоліо Ольги</title>
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -30,56 +31,25 @@
     </section>
 
     <section id="works">
-        <h2>Роботи</h2>
+        <h2>Роботи з API</h2>
 
-        <div class="filter-wrapper">
-            <label for="category-filter"><strong>Фільтр за категорією:</strong></label>
-            <select id="category-filter">
-                <option value="all">Усі категорії</option>
-                <option value="Фотографія">Фотографія</option>
-                <option value="Дизайн">Дизайн</option>
-            </select>
+        <!-- Панель керування завантаженням API -->
+        <div class="api-controls" style="margin-bottom: 15px;">
+            <button id="refresh-btn" type="button" class="btn-submit">Оновити дані з API</button>
         </div>
 
-        <p id="projects-count">Усього робіт: 4</p>
+        <!-- Індикатор стану завантаження -->
+        <div id="loading-indicator" style="display: none; padding: 10px; background: #eef6ff; color: #0056b3; border-radius: 4px; margin-bottom: 15px; font-weight: 500;">
+            Завантаження даних з сервера (JSONPlaceholder API)...
+        </div>
 
+        <!-- Повідомлення про помилку -->
+        <div id="error-message" style="display: none; padding: 10px; background: #fdf2f2; color: #9b1c1c; border: 1px solid #f8b4b4; border-radius: 4px; margin-bottom: 15px; font-weight: 500;"></div>
+
+        <p id="projects-count">Усього робіт: 0</p>
+
+        <!-- Контейнер галереї для відображення карток з API -->
         <div id="gallery" class="cards"></div>
-
-        <div class="form-container">
-            <h3>Додати нову роботу</h3>
-            <form id="add-project-form" novalidate>
-                <div class="form-group">
-                    <label for="project-title">Назва проєкту:</label>
-                    <input type="text" id="project-title" name="title" required placeholder="Наприклад: Брендбук студії">
-                </div>
-
-                <div class="form-group">
-                    <label for="project-year">Рік створення:</label>
-                    <input type="number" id="project-year" name="year" required min="2000" placeholder="2026">
-                </div>
-
-                <div class="form-group">
-                    <label for="project-category">Категорія:</label>
-                    <select id="project-category" name="category" required>
-                        <option value="">Оберіть категорію...</option>
-                        <option value="Фотографія">Фотографія</option>
-                        <option value="Дизайн">Дизайн</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="project-desc">Короткий опис:</label>
-                    <input type="text" id="project-desc" name="description" required placeholder="Стислий опис концепту">
-                </div>
-
-                <div class="form-group">
-                    <label for="project-image">Посилання на зображення (URL):</label>
-                    <input type="url" id="project-image" name="image" placeholder="https://images.unsplash.com/...">
-                </div>
-
-                <button type="submit" class="btn-submit">Додати проєкт</button>
-            </form>
-        </div>
     </section>
 
     <aside>

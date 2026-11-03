@@ -1,51 +1,28 @@
-const portfolioWorks = [
-    {
-        title: 'Студійний портрет «Warm Tones»',
-        year: 2025,
-        category: 'Фотографія',
-        image: 'assets/img/project1.jpg',
-        description: 'Мінімалістична студійна фотозйомка з фокусом на природність та теплу гаму кольорів.'
-    },
-    {
-        title: 'Брендинг для локальної кав’ярні',
-        year: 2026,
-        category: 'Дизайн',
-        image: 'assets/img/project2.jpg',
-        description: 'Створення логотипа, кольорової палітри та друкованої продукції в мінімалістичному стилі.'
-    },
-    {
-        title: 'Пейзажна зйомка «Полісся»',
-        year: 2024,
-        category: 'Фотографія',
-        image: 'assets/img/project3.jpg',
-        description: 'Дослідження природних ландшафтів та глибини кольорів української природи.'
-    },
-    {
-        title: 'Ретро-серія чорно-білих фотографій',
-        year: 2021,
-        category: 'Фотографія',
-        image: 'assets/img/project4.jpg',
-        description: 'Серія аналогових знімків на плівку з виразною грою світла й тіней.'
-    }
-];
+// Посилання на API для варіанта 2 (JSONPlaceholder Photos API)
+const API_URL = 'https://jsonplaceholder.typicode.com/photos?albumId=1';
 
-const isRecent = year => (2026 - year) <= 2;
-
+// Елементи DOM для роботи з інтерфейсом
 const galleryContainer = document.querySelector('#gallery');
 const counterElement = document.querySelector('#projects-count');
-const addProjectForm = document.querySelector('#add-project-form');
-const yearInput = document.querySelector('#project-year');
-const categoryFilter = document.querySelector('#category-filter');
+const loadingElement = document.querySelector('#loading-indicator');
+const errorElement = document.querySelector('#error-message');
+const refreshButton = document.querySelector('#refresh-btn');
 
+// Масив робіт, що заповнюватиметься з зовнішнього API
+let portfolioWorks = [];
+
+// Функція перевірки "свіжості" картки (для ID <= 2)
+const isRecent = id => id <= 2;
+
+// Функція рендерингу отриманих даних з API у DOM (поля: title, thumbnailUrl, id)
 function renderPortfolio(works) {
     galleryContainer.innerHTML = '';
 
     works.forEach(work => {
         const card = document.createElement('article');
         card.classList.add('card');
-        card.dataset.category = work.category; // збереження категорії для фільтрації
 
-        if (isRecent(work.year)) {
+        if (isRecent(work.id)) {
             card.classList.add('recent');
         }
 
@@ -53,22 +30,18 @@ function renderPortfolio(works) {
         title.textContent = work.title;
 
         const img = document.createElement('img');
-        img.src = work.image;
-        img.alt = `${work.title} - ${work.description}`;
+        img.src = work.thumbnailUrl || 'https://via.placeholder.com/150';
+        img.alt = work.title;
 
         const contentDiv = document.createElement('div');
         contentDiv.classList.add('card-content');
 
-        const yearParagraph = document.createElement('p');
-        yearParagraph.textContent = `Рік: ${work.year} | ${work.category}`;
-        yearParagraph.style.fontWeight = '500';
+        const infoParagraph = document.createElement('p');
+        infoParagraph.textContent = `ID фото: ${work.id} | Альбом №1`;
+        infoParagraph.style.fontWeight = '500';
 
-        const descParagraph = document.createElement('p');
-        descParagraph.textContent = work.description;
-
-        contentDiv.append(yearParagraph, descParagraph);
+        contentDiv.append(infoParagraph);
         card.append(title, img, contentDiv);
-
         galleryContainer.append(card);
     });
 
@@ -77,64 +50,70 @@ function renderPortfolio(works) {
     }
 }
 
-renderPortfolio(portfolioWorks);
-
-
-yearInput.addEventListener('input', () => {
-    const currentYear = 2026;
-    const enteredYear = Number(yearInput.value);
-
-    if (enteredYear > currentYear) {
-        yearInput.setCustomValidity(`Рік не може бути в майбутньому (максимум ${currentYear})`);
-    } else if (enteredYear < 2000 && enteredYear !== 0) {
-        yearInput.setCustomValidity('Рік не може бути раніше 2000-го');
-    } else {
-        yearInput.setCustomValidity(''); // валідне значення
+// Функція керування відображенням стану завантаження (loading)
+function showLoading(isLoading) {
+    if (loadingElement) {
+        loadingElement.style.display = isLoading ? 'block' : 'none';
     }
-    yearInput.reportValidity();
-});
-
-
-addProjectForm.addEventListener('submit', event => {
-    event.preventDefault();
-
-    if (!addProjectForm.checkValidity()) {
-        addProjectForm.reportValidity();
-        return;
+    if (refreshButton) {
+        refreshButton.disabled = isLoading;
     }
+}
 
-    const title = document.querySelector('#project-title').value.trim();
-    const year = Number(yearInput.value);
-    const category = document.querySelector('#project-category').value;
-    const description = document.querySelector('#project-desc').value.trim();
-    const userImageUrl = document.querySelector('#project-image').value.trim();
+// Функція відображення текстового повідомлення про помилку
+function showError(message) {
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = message ? 'block' : 'none';
+    }
+}
 
-    const placeholderImage = `https://placehold.co/600x400/222222/ffffff?text=${encodeURIComponent(category)}`;
+// Асинхронна функція завантаження даних через Fetch API з обробкою помилок
+async function loadData() {
+    showLoading(true);
+    showError(''); // очищення попередніх повідомлень про помилки
 
-    const newWork = {
-        title,
-        year,
-        category,
-        image: userImageUrl || placeholderImage,
-        description
-    };
+    try {
+        const response = await fetch(API_URL);
 
-    portfolioWorks.push(newWork);
+        // Перевірка коду статусу відповіді (response.ok)
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Альбом не знайдено');
+            }
+            throw new Error(`Сервер відповів кодом ${response.status}`);
+        }
 
-    renderPortfolio(portfolioWorks);
+        // Розбір тіла відповіді як JSON
+        const data = await response.json();
 
-    categoryFilter.value = 'all';
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Альбом не знайдено');
+        }
 
-    addProjectForm.reset();
-});
+        portfolioWorks = data;
+        renderPortfolio(portfolioWorks);
 
+    } catch (error) {
+        console.error('Деталі помилки завантаження:', error);
 
-categoryFilter.addEventListener('change', () => {
-    const selectedCategory = categoryFilter.value;
-    const cards = galleryContainer.querySelectorAll('article.card');
+        // Перевірка та обробка мережевих збоїв (режим Offline)
+        if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+            showError('Не вдалося отримати дані: відсутнє мережеве з’єднання (Offline).');
+        } else {
+            showError(error.message || 'Не вдалося завантажити дані.');
+        }
+    } finally {
+        showLoading(false);
+    }
+}
 
-    cards.forEach(card => {
-        const isMatch = selectedCategory === 'all' || card.dataset.category === selectedCategory;
-        card.classList.toggle('hidden', !isMatch);
+// Повторний виклик loadData() за кліком на кнопку «Оновити»
+if (refreshButton) {
+    refreshButton.addEventListener('click', () => {
+        loadData();
     });
-});
+}
+
+// Початковий виклик завантаження даних при відкритті сторінки
+loadData();
