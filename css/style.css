@@ -362,3 +362,39 @@ footer a:hover {
     opacity: 0.5;
     cursor: not-allowed;
 }
+.badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: var(--color-accent);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    z-index: 10;
+}
+
+/* Оформлення додаткових даних у картці */
+.card-body {
+    padding: 16px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    position: relative;
+}
+
+.card-meta {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 4px 0 8px;
+}
+
+.card-description {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--color-text-main);
+    border-top: 1px dashed var(--color-border);
+    padding-top: 8px;
+}
