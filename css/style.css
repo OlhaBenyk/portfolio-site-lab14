@@ -32,14 +32,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-
 h1, h2, h3 {
     font-family: var(--font-heading);
     color: var(--color-text-main);
     font-weight: 700;
     letter-spacing: -0.01em;
 }
-
 
 .site-header {
     padding: 32px 16px 20px;
@@ -148,7 +146,6 @@ h2 {
     flex-grow: 1;
 }
 
-
 .card-content p {
     margin: 0;
     color: var(--color-text-muted);
@@ -210,7 +207,6 @@ footer a:hover {
     color: var(--color-accent);
 }
 
-
 @media (min-width: 600px) {
     main {
         padding: 40px 24px;
@@ -225,7 +221,6 @@ footer a:hover {
         font-size: 2.3rem;
     }
 }
-
 
 @media (min-width: 1024px) {
     .site-header {
@@ -271,6 +266,7 @@ footer a:hover {
     border-radius: 4px;
     letter-spacing: 0.05em;
 }
+
 .hidden {
     display: none !important;
 }
@@ -328,6 +324,7 @@ footer a:hover {
 .btn-submit:hover {
     opacity: 0.9;
 }
+
 /* ==========================================
    Стилі для ЛР9 (API, Loading, Errors)
    ========================================== */
@@ -362,6 +359,7 @@ footer a:hover {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
 .badge {
     position: absolute;
     top: 12px;
@@ -376,7 +374,6 @@ footer a:hover {
     z-index: 10;
 }
 
-/* Оформлення додаткових даних у картці */
 .card-body {
     padding: 16px 18px 20px;
     display: flex;
@@ -397,4 +394,136 @@ footer a:hover {
     color: var(--color-text-main);
     border-top: 1px dashed var(--color-border);
     padding-top: 8px;
+}
+
+/* ==========================================================================
+   Практична робота №12: CSS-анімації та інтерактивні елементи (Варіант 2)
+   ========================================================================== */
+
+@keyframes cardFadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cardFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+}
+
+.card.animate-enter {
+    opacity: 0;
+    animation: cardFadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+}
+
+.card.animate-exit {
+    animation: cardFadeOut 0.3s ease forwards;
+    pointer-events: none;
+}
+
+body.animations-paused .card.animate-enter {
+    animation-play-state: paused;
+    opacity: 1;
+    transform: none;
+}
+
+body.animations-paused .card img,
+body.animations-paused .portfolio-progress-fill {
+    transition: none !important;
+}
+
+.card-img-wrapper {
+    overflow: hidden;
+    width: 100%;
+    height: 250px;
+}
+
+@media (min-width: 1024px) {
+    .card-img-wrapper {
+        height: 280px;
+    }
+}
+
+.card-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+    will-change: transform;
+}
+
+.card:hover .card-img-wrapper img {
+    transform: scale(1.06);
+    filter: brightness(1.04);
+}
+
+.portfolio-progress-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+}
+
+.portfolio-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.portfolio-progress-track {
+    width: 100%;
+    height: 10px;
+    background-color: var(--color-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.portfolio-progress-fill {
+    height: 100%;
+    width: 0;
+    background-color: var(--color-accent);
+    border-radius: 999px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animation-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.btn-secondary {
+    background-color: var(--color-surface);
+    color: var(--color-text-main);
+    border: 1px solid var(--color-border);
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-soft);
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Портфоліо Ольги — ЛР11 (IndexedDB)</title>
+    <title>Портфоліо Ольги — ЛР12 (CSS-анімації)</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,17 +32,32 @@
     </section>
 
     <section id="works">
-        <h2>Мої роботи (IndexedDB: сховище "works")</h2>
+        <h2>Мої роботи (CSS-анімації та IndexedDB)</h2>
 
         <!-- Повідомлення про статус міграції або помилки роботи з IndexedDB -->
         <div id="db-status" style="display: none; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500;"></div>
 
-        <p id="projects-count">Усього робіт: 0</p>
+        <!-- Інтерактивний прогрес-бар наповнення колекції (прив'язаний до реальних даних із IndexedDB) -->
+        <div class="portfolio-progress-box">
+            <div class="portfolio-progress-header">
+                <span id="projects-count">Усього робіт: 0</span>
+                <span id="progress-label">Ціль колекції: 0 / 6 робіт (0%)</span>
+            </div>
+            <div class="portfolio-progress-track">
+                <div id="portfolio-progress-fill" class="portfolio-progress-fill"></div>
+            </div>
+        </div>
 
-        <!-- Контейнер галереї, куди рендеряться дані з IndexedDB -->
+        <!-- Керування CSS-анімацією (Кроки 7-8: повторне програвання та animation-play-state) -->
+        <div class="animation-controls">
+            <button type="button" id="replay-anim-btn" class="btn-secondary">Відтворити появу карток</button>
+            <button type="button" id="toggle-anim-btn" class="btn-secondary">Вимкнути анімації (Pause)</button>
+        </div>
+
+        <!-- Контейнер галереї -->
         <div id="gallery" class="cards"></div>
 
-        <!-- Форма додавання нової роботи (CRUD: Create -> IndexedDB) -->
+        <!-- Форма додавання нової роботи (CRUD: Create -> IndexedDB + анімація появи) -->
         <div id="add-work" class="form-container">
             <h3>Додати нову роботу до портфоліо</h3>
             <form id="work-form">

@@ -1,7 +1,6 @@
 // ============================================================================
-// Практична робота №11: Локальні сховища даних (localStorage / IndexedDB)
-// Варіант 2: Портфоліо фотографа/дизайнера
-// Сховище: object store "works", keyPath: "id"
+// Практична робота №12: CSS-анімації та інтерактивні елементи (Варіант 2)
+// Інтеграція з локальним сховищем IndexedDB (Практикум №11)
 // ============================================================================
 
 const LS_KEY = 'portfolio_works_ls';
@@ -9,8 +8,8 @@ const LS_MIGRATED_KEY = 'portfolio_works_migrated';
 const DB_NAME = 'PortfolioDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'works';
+const TARGET_WORKS_COUNT = 6; // цільова кількість робіт для розрахунку прогрес-бару
 
-// Стартові дані для демонстрації первинного збереження в localStorage та подальшої міграції в IndexedDB
 const INITIAL_WORKS = [
     {
         id: 1,
@@ -38,10 +37,13 @@ const INITIAL_WORKS = [
 // Елементи DOM
 const galleryContainer = document.querySelector('#gallery');
 const counterElement = document.querySelector('#projects-count');
+const progressLabelElement = document.querySelector('#progress-label');
+const progressFillElement = document.querySelector('#portfolio-progress-fill');
 const statusElement = document.querySelector('#db-status');
 const workForm = document.querySelector('#work-form');
+const replayAnimBtn = document.querySelector('#replay-anim-btn');
+const toggleAnimBtn = document.querySelector('#toggle-anim-btn');
 
-// Допоміжна функція виведення статусних повідомлень або помилок БД
 function showStatus(message, isError = false) {
     if (!statusElement) return;
     statusElement.textContent = message;
@@ -52,12 +54,9 @@ function showStatus(message, isError = false) {
 }
 
 // ============================================================================
-// ЧАСТИНА 1: Синхронне збереження в localStorage (Кроки 2-3)
+// Робота з localStorage та IndexedDB (з Практикуму №11)
 // ============================================================================
 
-/**
- * Зберігає масив робіт у localStorage у форматі JSON-рядка
- */
 function saveToLocalStorage(items) {
     try {
         localStorage.setItem(LS_KEY, JSON.stringify(items));
@@ -66,9 +65,6 @@ function saveToLocalStorage(items) {
     }
 }
 
-/**
- * Зчитує масив робіт із localStorage з безпечним розбором JSON у try/catch
- */
 function loadFromLocalStorage() {
     try {
         const raw = localStorage.getItem(LS_KEY);
@@ -79,37 +75,24 @@ function loadFromLocalStorage() {
     }
 }
 
-// ============================================================================
-// ЧАСТИНА 2: Асинхронна робота з IndexedDB (Кроки 5-8)
-// ============================================================================
-
-/**
- * Відкриває або створює базу даних IndexedDB та об'єктне сховище "works" із ключем "id"
- */
 function openDB() {
     return new Promise((resolve, reject) => {
         if (!window.indexedDB) {
-            reject(new Error('Ваш браузер не підтримує IndexedDB або ви перебуваєте в режимі приватного перегляду.'));
+            reject(new Error('Ваш браузер не підтримує IndexedDB.'));
             return;
         }
-
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             }
         };
-
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error || new Error('Не вдалося відкрити базу даних IndexedDB.'));
+        request.onerror = () => reject(request.error || new Error('Помилка відкриття IndexedDB.'));
     });
 }
 
-/**
- * Додає новий запис або оновлює наявний у сховищі "works" (CRUD: Create / Update)
- */
 async function addItem(item) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -120,9 +103,6 @@ async function addItem(item) {
     });
 }
 
-/**
- * Отримує всі записи зі сховища "works" (CRUD: Read)
- */
 async function getAllItems() {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -133,9 +113,6 @@ async function getAllItems() {
     });
 }
 
-/**
- * Видаляє запис зі сховища "works" за його унікальним id (CRUD: Delete)
- */
 async function deleteItem(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -146,51 +123,66 @@ async function deleteItem(id) {
     });
 }
 
-/**
- * Одноразова міграція даних із localStorage у IndexedDB при першому запуску
- */
 async function migrateFromLocalStorageIfNeeded() {
     const isMigrated = localStorage.getItem(LS_MIGRATED_KEY) === 'true';
     const existingDbItems = await getAllItems();
 
-    // Якщо сховище порожнє і міграція ще не проводилась
     if (existingDbItems.length === 0 && !isMigrated) {
         let lsItems = loadFromLocalStorage();
-
-        // Якщо localStorage також порожній при першому запуску — ініціалізуємо початкові дані
         if (lsItems.length === 0) {
             lsItems = INITIAL_WORKS;
             saveToLocalStorage(lsItems);
         }
-
-        // Переносимо кожен елемент із localStorage в IndexedDB
         for (const item of lsItems) {
             await addItem(item);
         }
-
-        // Позначаємо прапорцем, щоб не дублювати міграцію при наступних перезавантаженнях
         localStorage.setItem(LS_MIGRATED_KEY, 'true');
-        showStatus('Виконано одноразову міграцію стартових даних із localStorage в IndexedDB.');
     }
 }
 
 // ============================================================================
-// ЧАСТИНА 3: Рендер списку та обробка дій користувача (Крок 9)
+// ЛР12: Оновлення анімованого прогрес-бару та рендер карток із CSS-анімацією
 // ============================================================================
 
 /**
- * Відмальовує список карток робіт, отриманих із IndexedDB
+ * Оновлює ширину прогрес-бару залежно від реальної кількості робіт у IndexedDB
+ * (анімація ширини виконується через CSS transition)
+ */
+function updatePortfolioProgress(count) {
+    const percent = Math.min(100, Math.round((count / TARGET_WORKS_COUNT) * 100));
+
+    if (counterElement) {
+        counterElement.textContent = `Усього робіт: ${count}`;
+    }
+    if (progressLabelElement) {
+        progressLabelElement.textContent = `Ціль колекції: ${count} / ${TARGET_WORKS_COUNT} робіт (${percent}%)`;
+    }
+    if (progressFillElement) {
+        progressFillElement.style.width = `${percent}%`;
+    }
+}
+
+/**
+ * Відмальовує картки робіт із каскадною CSS-анімацією появи (fade-in + translateY)
+ * та обгорткою .card-img-wrapper для hover-ефекту масштабування (transform: scale)
  */
 function renderWorks(works) {
     galleryContainer.innerHTML = '';
 
-    works.forEach(work => {
+    works.forEach((work, index) => {
         const card = document.createElement('article');
-        card.className = 'card';
+        card.className = 'card animate-enter';
+        // Каскадна затримка появи кожної наступної картки (по 90 мс)
+        card.style.animationDelay = `${index * 0.09}s`;
+
+        // Обгортка зображення для плавного transform: scale(1.06) при наведенні
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = 'card-img-wrapper';
 
         const img = document.createElement('img');
         img.src = work.imageUrl || 'https://picsum.photos/seed/default/600/400';
         img.alt = work.title;
+        imgWrapper.appendChild(img);
 
         const title = document.createElement('h3');
         title.textContent = work.title;
@@ -208,7 +200,7 @@ function renderWorks(works) {
         desc.textContent = work.description;
         desc.style.marginBottom = '14px';
 
-        // Кнопка видалення роботи (CRUD: Delete)
+        // Кнопка видалення з плавною CSS-анімацією зникнення (.animate-exit)
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.textContent = 'Видалити роботу';
@@ -216,27 +208,32 @@ function renderWorks(works) {
 
         deleteBtn.addEventListener('click', async () => {
             try {
+                // Запускаємо CSS-анімацію зникнення перед видаленням із БД
+                card.classList.remove('animate-enter');
+                card.classList.add('animate-exit');
+
+                await new Promise(resolve => setTimeout(resolve, 280));
                 await deleteItem(work.id);
+
                 const updatedWorks = await getAllItems();
-                saveToLocalStorage(updatedWorks); // підтримуємо актуальну копію в LS
+                saveToLocalStorage(updatedWorks);
                 renderWorks(updatedWorks);
-                showStatus(`Роботу «${work.title}» видалено з IndexedDB.`);
+                showStatus(`Роботу «${work.title}» видалено зі сховища.`);
             } catch (error) {
-                showStatus('Помилка під час видалення запису з IndexedDB.', true);
+                showStatus('Помилка під час видалення запису.', true);
             }
         });
 
         content.append(categoryBadge, desc, deleteBtn);
-        card.append(img, title, content);
+        card.append(imgWrapper, title, content);
         galleryContainer.appendChild(card);
     });
 
-    if (counterElement) {
-        counterElement.textContent = `Усього робіт: ${works.length}`;
-    }
+    // Оновлюємо прогрес-індикатор відповідно до актуального стану даних
+    updatePortfolioProgress(works.length);
 }
 
-// Обробка відправлення форми додавання нової роботи (CRUD: Create)
+// Додавання нової роботи через форму з анімацією появи нової картки
 if (workForm) {
     workForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -247,7 +244,7 @@ if (workForm) {
         const descInput = document.querySelector('#work-desc');
 
         const newWork = {
-            id: Date.now(), // унікальний числовий ідентифікатор
+            id: Date.now(),
             title: titleInput.value.trim(),
             category: categoryInput.value,
             imageUrl: imageInput.value.trim() || `https://picsum.photos/seed/${Date.now()}/600/400`,
@@ -255,24 +252,43 @@ if (workForm) {
         };
 
         try {
-            // Зберігаємо в IndexedDB
             await addItem(newWork);
-
-            // Отримуємо оновлений список із IndexedDB та перемальовуємо інтерфейс
             const updatedWorks = await getAllItems();
             saveToLocalStorage(updatedWorks);
             renderWorks(updatedWorks);
 
             workForm.reset();
-            showStatus(`Нову роботу «${newWork.title}» успішно збережено в IndexedDB!`);
+            showStatus(`Роботу «${newWork.title}» додано та анімовано!`);
         } catch (error) {
-            console.error('Помилка збереження в IndexedDB:', error);
-            showStatus('Не вдалося зберегти роботу в базу даних IndexedDB.', true);
+            showStatus('Не вдалося зберегти роботу в IndexedDB.', true);
         }
     });
 }
 
-// Ініціалізація застосунку при завантаженні сторінки (Крок 11: try/catch навколо openDB)
+// Кнопка повторного програвання CSS-анімації появи карток
+if (replayAnimBtn) {
+    replayAnimBtn.addEventListener('click', () => {
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, index) => {
+            card.classList.remove('animate-enter');
+            void card.offsetWidth; // примусовий reflow для перезапуску @keyframes
+            card.style.animationDelay = `${index * 0.09}s`;
+            card.classList.add('animate-enter');
+        });
+    });
+}
+
+// Кнопка призупинення / відновлення анімацій (Крок 8: animation-play-state)
+if (toggleAnimBtn) {
+    toggleAnimBtn.addEventListener('click', () => {
+        const isPaused = document.body.classList.toggle('animations-paused');
+        toggleAnimBtn.textContent = isPaused
+            ? 'Увімкнути анімації (Play)'
+            : 'Вимкнути анімації (Pause)';
+    });
+}
+
+// Ініціалізація застосунку
 async function initApp() {
     try {
         await openDB();
@@ -280,9 +296,7 @@ async function initApp() {
         const works = await getAllItems();
         renderWorks(works);
     } catch (error) {
-        console.error('Критична помилка IndexedDB:', error);
-        showStatus(`Помилка доступу до локальної бази даних: ${error.message}`, true);
-        // Резервне завантаження з localStorage, якщо IndexedDB заблокована
+        showStatus(`Помилка доступу до БД: ${error.message}`, true);
         const fallbackWorks = loadFromLocalStorage();
         renderWorks(fallbackWorks);
     }
