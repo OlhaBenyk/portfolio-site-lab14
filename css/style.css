@@ -527,3 +527,14 @@ body.animations-paused .portfolio-progress-fill {
     border-color: var(--color-accent);
     background-color: var(--color-accent-soft);
 }
+
+
+nav a.active-route {
+    color: var(--color-accent);
+    font-weight: 700;
+    border-bottom: 2px solid var(--color-accent);
+}
+
+.work-detail-view {
+    animation: cardFadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

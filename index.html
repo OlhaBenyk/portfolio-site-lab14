@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Портфоліо Ольги — ЛР12 (CSS-анімації)</title>
+    <title>Портфоліо Ольги — ЛР13 (SPA та клієнтська маршрутизація)</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,92 +14,18 @@
 <body>
 
 <header class="site-header">
-    <h1>Портфоліо Ольги</h1>
+    <h1><a href="#/" data-link style="text-decoration: none; color: inherit;">Портфоліо Ольги</a></h1>
     <nav>
         <ul>
-            <li><a href="#about">Про мене</a></li>
-            <li><a href="#works">Роботи</a></li>
-            <li><a href="#add-work">Додати роботу</a></li>
-            <li><a href="#contacts">Контакти</a></li>
+            <li><a href="#/" data-link>Усі роботи</a></li>
+            <li><a href="#/category/Портретна%20зйомка" data-link>Портретна зйомка</a></li>
+            <li><a href="#/category/Графічний%20дизайн" data-link>Графічний дизайн</a></li>
+            <li><a href="#/category/Айдентика%20та%20брендинг" data-link>Айдентика</a></li>
         </ul>
     </nav>
 </header>
 
-<main>
-    <section id="about">
-        <h2>Про мене</h2>
-        <p>Вітаю! Я фотограф та графічний дизайнер. Створюю візуальний контент, атмосферні портретні зйомки та розробляю сучасні дизайн-концепти.</p>
-    </section>
-
-    <section id="works">
-        <h2>Мої роботи (CSS-анімації та IndexedDB)</h2>
-
-        <!-- Повідомлення про статус міграції або помилки роботи з IndexedDB -->
-        <div id="db-status" style="display: none; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500;"></div>
-
-        <!-- Інтерактивний прогрес-бар наповнення колекції (прив'язаний до реальних даних із IndexedDB) -->
-        <div class="portfolio-progress-box">
-            <div class="portfolio-progress-header">
-                <span id="projects-count">Усього робіт: 0</span>
-                <span id="progress-label">Ціль колекції: 0 / 6 робіт (0%)</span>
-            </div>
-            <div class="portfolio-progress-track">
-                <div id="portfolio-progress-fill" class="portfolio-progress-fill"></div>
-            </div>
-        </div>
-
-        <!-- Керування CSS-анімацією (Кроки 7-8: повторне програвання та animation-play-state) -->
-        <div class="animation-controls">
-            <button type="button" id="replay-anim-btn" class="btn-secondary">Відтворити появу карток</button>
-            <button type="button" id="toggle-anim-btn" class="btn-secondary">Вимкнути анімації (Pause)</button>
-        </div>
-
-        <!-- Контейнер галереї -->
-        <div id="gallery" class="cards"></div>
-
-        <!-- Форма додавання нової роботи (CRUD: Create -> IndexedDB + анімація появи) -->
-        <div id="add-work" class="form-container">
-            <h3>Додати нову роботу до портфоліо</h3>
-            <form id="work-form">
-                <div class="form-group">
-                    <label for="work-title">Назва проєкту *</label>
-                    <input type="text" id="work-title" required placeholder="Наприклад: Осіння фотосесія">
-                </div>
-
-                <div class="form-group">
-                    <label for="work-category">Категорія *</label>
-                    <select id="work-category" required>
-                        <option value="Портретна зйомка">Портретна зйомка</option>
-                        <option value="Графічний дизайн">Графічний дизайн</option>
-                        <option value="Айдентика та брендинг">Айдентика та брендинг</option>
-                        <option value="Репортаж">Репортаж</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="work-image">Посилання на зображення (URL)</label>
-                    <input type="url" id="work-image" placeholder="https://picsum.photos/seed/photo1/600/400">
-                </div>
-
-                <div class="form-group">
-                    <label for="work-desc">Опис роботи *</label>
-                    <input type="text" id="work-desc" required placeholder="Короткий опис ідеї та реалізації">
-                </div>
-
-                <button type="submit" class="btn-submit">Зберегти в IndexedDB</button>
-            </form>
-        </div>
-    </section>
-
-    <aside>
-        <h2>Мої навички</h2>
-        <ul>
-            <li>Художня та репортажна фотографія</li>
-            <li>Adobe Photoshop, Lightroom, Illustrator</li>
-            <li>Розробка фірмового стилю та айдентики</li>
-        </ul>
-    </aside>
-</main>
+<main id="app"></main>
 
 <footer id="contacts">
     <h2>Контакти</h2>
