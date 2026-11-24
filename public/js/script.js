@@ -1,38 +1,14 @@
 // ============================================================================
-// Практична робота №13: Односторінкові застосунки (SPA) та клієнтська маршрутизація
-// Варіант 2: Портфоліо фотографа/дизайнера (Hash-based роутинг + IndexedDB + CSS-анімації)
+// Практична робота №14: Node.js, клієнт-серверна взаємодія, власний API
+// Варіант 2: Портфоліо фотографа/дизайнера (Express API + SPA + IndexedDB)
 // ============================================================================
 
+const API_BASE_URL = '/api/works';
 const LS_KEY = 'portfolio_works_ls';
-const LS_MIGRATED_KEY = 'portfolio_works_migrated';
 const DB_NAME = 'PortfolioDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'works';
 const TARGET_WORKS_COUNT = 6; // цільова кількість робіт для розрахунку прогрес-бару
-
-const INITIAL_WORKS = [
-    {
-        id: 1,
-        title: 'Атмосферний студійний портрет',
-        imageUrl: 'https://picsum.photos/seed/portrait1/600/400',
-        category: 'Портретна зйомка',
-        description: 'Гра світла і тіні в мінімалістичній студії.'
-    },
-    {
-        id: 2,
-        title: 'Айдентика для кав’ярні «Зерно»',
-        imageUrl: 'https://picsum.photos/seed/design2/600/400',
-        category: 'Айдентика та брендинг',
-        description: 'Розробка логотипу, пакування та фірмової палітри.'
-    },
-    {
-        id: 3,
-        title: 'Карпатські світанки',
-        imageUrl: 'https://picsum.photos/seed/nature3/600/400',
-        category: 'Репортаж',
-        description: 'Серія пейзажних знімків з експедиції в гори.'
-    }
-];
 
 function showStatus(message, isError = false) {
     const statusElement = document.querySelector('#db-status');
@@ -45,7 +21,40 @@ function showStatus(message, isError = false) {
 }
 
 // ============================================================================
-// Робота з localStorage та IndexedDB (з Практикуму №11)
+// Запити до власного локального сервера Node.js (/api/works та /api/works/:id)
+// ============================================================================
+
+async function fetchWorksFromApi() {
+    try {
+        const response = await fetch(API_BASE_URL);
+        if (!response.ok) {
+            throw new Error(`Помилка сервера: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Помилка отримання списку робіт з /api/works:', error);
+        throw error;
+    }
+}
+
+async function fetchWorkByIdFromApi(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`);
+        if (response.status === 404) {
+            return null;
+        }
+        if (!response.ok) {
+            throw new Error(`Помилка сервера: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Помилка отримання роботи id=${id} з /api/works/:id:`, error);
+        return null;
+    }
+}
+
+// ============================================================================
+// Робота з localStorage та IndexedDB (кешування та локальні записи)
 // ============================================================================
 
 function saveToLocalStorage(items) {
@@ -104,16 +113,6 @@ async function getAllItems() {
     });
 }
 
-async function getItemById(id) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const request = tx.objectStore(STORE_NAME).get(Number(id));
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error);
-    });
-}
-
 async function deleteItem(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -124,25 +123,18 @@ async function deleteItem(id) {
     });
 }
 
-async function migrateFromLocalStorageIfNeeded() {
-    const isMigrated = localStorage.getItem(LS_MIGRATED_KEY) === 'true';
-    const existingDbItems = await getAllItems();
-
-    if (existingDbItems.length === 0 && !isMigrated) {
-        let lsItems = loadFromLocalStorage();
-        if (lsItems.length === 0) {
-            lsItems = INITIAL_WORKS;
-            saveToLocalStorage(lsItems);
-        }
-        for (const item of lsItems) {
-            await addItem(item);
-        }
-        localStorage.setItem(LS_MIGRATED_KEY, 'true');
+async function syncWithServerApi() {
+    const serverWorks = await fetchWorksFromApi();
+    for (const item of serverWorks) {
+        await addItem(item);
     }
+    const allWorks = await getAllItems();
+    saveToLocalStorage(allWorks);
+    return allWorks;
 }
 
 // ============================================================================
-// Повторно використовувані функції рендеру карток та прогрес-бару (ПР №7, №12)
+// Повторно використовувані функції рендеру карток та прогрес-бару
 // ============================================================================
 
 function updatePortfolioProgress(count) {
@@ -182,7 +174,6 @@ function renderWorks(works, container = document.querySelector('#gallery')) {
         card.className = 'card animate-enter';
         card.style.animationDelay = `${index * 0.09}s`;
 
-        // Обгортка зображення з посиланням на деталі роботи (/works/:id)
         const imgLink = document.createElement('a');
         imgLink.href = `#/works/${work.id}`;
         imgLink.setAttribute('data-link', '');
@@ -204,7 +195,6 @@ function renderWorks(works, container = document.querySelector('#gallery')) {
         const content = document.createElement('div');
         content.className = 'card-content';
 
-        // Посилання на фільтрацію за категорією (/category/:category)
         const categoryLine = document.createElement('p');
         categoryLine.style.marginBottom = '6px';
         const categoryLink = document.createElement('a');
@@ -218,7 +208,6 @@ function renderWorks(works, container = document.querySelector('#gallery')) {
         desc.textContent = work.description;
         desc.style.marginBottom = '14px';
 
-        // Панель кнопок картки: Детальніше + Видалити роботу
         const actionsRow = document.createElement('div');
         actionsRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap;';
 
@@ -245,7 +234,7 @@ function renderWorks(works, container = document.querySelector('#gallery')) {
                 const updatedWorks = await getAllItems();
                 saveToLocalStorage(updatedWorks);
                 await router();
-                showStatus(`Роботу «${work.title}» видалено зі сховища.`);
+                showStatus(`Роботу «${work.title}» видалено з локального сховища.`);
             } catch (error) {
                 showStatus('Помилка під час видалення запису.', true);
             }
@@ -259,7 +248,7 @@ function renderWorks(works, container = document.querySelector('#gallery')) {
 }
 
 // ============================================================================
-// View-функції маршрутів SPA (Варіант 2: "/", "/works/:id", "/category/:category", 404)
+// View-функції маршрутів SPA ("/", "/works/:id", "/category/:category", 404)
 // ============================================================================
 
 async function renderHomeView() {
@@ -273,7 +262,7 @@ async function renderHomeView() {
         </section>
 
         <section id="works">
-            <h2>Мої роботи (SPA + CSS-анімації та IndexedDB)</h2>
+            <h2>Мої роботи (Node.js API + SPA та IndexedDB)</h2>
 
             <div id="db-status" style="display: none; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-weight: 500;"></div>
 
@@ -288,6 +277,7 @@ async function renderHomeView() {
             </div>
 
             <div class="animation-controls">
+                <button type="button" id="reload-api-btn" class="btn-secondary">Оновити з сервера (/api/works)</button>
                 <button type="button" id="replay-anim-btn" class="btn-secondary">Відтворити появу карток</button>
                 <button type="button" id="toggle-anim-btn" class="btn-secondary">${isPaused ? 'Увімкнути анімації (Play)' : 'Вимкнути анімації (Pause)'}</button>
             </div>
@@ -345,11 +335,18 @@ async function renderHomeView() {
 
 async function renderWorkDetailView(params) {
     const app = document.querySelector('#app');
-    const works = await loadWorksSafe();
-    const work = works.find((item) => String(item.id) === String(params.id));
+
+    // Спочатку пробуємо отримати роботу напряму з серверного ендпоінта GET /api/works/:id
+    let work = await fetchWorkByIdFromApi(params.id);
+
+    // Якщо її немає на сервері (наприклад, додана локально користувачем), шукаємо в локальному сховищі
+    if (!work) {
+        const works = await loadWorksSafe();
+        work = works.find((item) => String(item.id) === String(params.id));
+    }
 
     if (!work) {
-        renderNotFoundView(`Роботу з ID «${params.id}» не знайдено у сховищі.`);
+        renderNotFoundView(`Роботу з ID «${params.id}» не знайдено (404).`);
         return;
     }
 
@@ -467,7 +464,6 @@ function renderNotFoundView(message = 'Сторінку не знайдено.')
 // Таблиця маршрутів та клієнтський SPA-роутер (Hash-based routing)
 // ============================================================================
 
-// Таблиця маршрутів застосунку: зіставлення URL-патернів (з параметрами :id та :category) із view-функціями
 const routes = [
     { path: '/', view: renderHomeView },
     { path: '/works/:id', view: renderWorkDetailView },
@@ -521,8 +517,22 @@ async function router() {
 
 function bindHomeControls() {
     const workForm = document.querySelector('#work-form');
+    const reloadApiBtn = document.querySelector('#reload-api-btn');
     const replayAnimBtn = document.querySelector('#replay-anim-btn');
     const toggleAnimBtn = document.querySelector('#toggle-anim-btn');
+
+    if (reloadApiBtn) {
+        reloadApiBtn.addEventListener('click', async () => {
+            try {
+                const works = await syncWithServerApi();
+                renderWorks(works, document.querySelector('#gallery'));
+                updatePortfolioProgress(works.length);
+                showStatus(`Дані успішно оновлено з локального сервера (${API_BASE_URL}).`);
+            } catch (error) {
+                showStatus(`Не вдалося звернутися до сервера: ${error.message}`, true);
+            }
+        });
+    }
 
     if (workForm) {
         workForm.addEventListener('submit', async (event) => {
@@ -549,7 +559,7 @@ function bindHomeControls() {
                 updatePortfolioProgress(updatedWorks.length);
 
                 workForm.reset();
-                showStatus(`Роботу «${newWork.title}» додано та анімовано!`);
+                showStatus(`Роботу «${newWork.title}» додано до IndexedDB!`);
             } catch (error) {
                 showStatus('Не вдалося зберегти роботу в IndexedDB.', true);
             }
@@ -581,15 +591,18 @@ function bindHomeControls() {
 async function loadWorksSafe() {
     try {
         await openDB();
-        await migrateFromLocalStorageIfNeeded();
-        return await getAllItems();
+        return await syncWithServerApi();
     } catch (error) {
-        showStatus(`Помилка доступу до БД: ${error.message}`, true);
-        return loadFromLocalStorage();
+        showStatus(`Сервер недоступний, показано кешовані дані: ${error.message}`, true);
+        try {
+            const cachedDb = await getAllItems();
+            return cachedDb.length ? cachedDb : loadFromLocalStorage();
+        } catch {
+            return loadFromLocalStorage();
+        }
     }
 }
 
-// Перехоплення кліків за внутрішніми SPA-посиланнями з атрибутом data-link
 document.addEventListener('click', (event) => {
     const link = event.target.closest('a[data-link]');
     if (!link) return;
